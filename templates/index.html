@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>ChatFlow</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="brand">ChatFlow</div>
+
+        <div class="live-status">
+           <span class="status-dot"></span>     
+            Live chat
+        </div>
+    </nav>
+
+    <main class="page-container">
+        <!-- Home section -->
+               <section id="home-section" class="hero-section">
+            <div class="hero-content">
+                <p class="badge">Simple • Fast • Friendly</p>
+
+                <h1>Connect and chat in real time</h1>
+
+                <p class="hero-description">
+                    Enter a display name and start talking with people
+                    instantly.
+                </p>
+
+                <div class="name-form">
+                    <label for="username-input">Your display name</label>
+
+                    <input
+                        id="username-input"
+                        type="text"
+                        maxlength="20"
+                        placeholder="Example: Hari"
+                        autocomplete="off"
+                    >
+
+                    <button id="start-button" type="button">
+                        Start chatting
+                    </button>
+
+                    <p id="name-error" class="error-message"></p>
+                </div>
+
+                <div class="feature-list">
+                    <span>⚡ Real-time messages</span>
+                    <span>🕒 Message timestamps</span>
+                    <span>🔒 No password required</span>
+                </div>
+            </div>
+
+            <div class="hero-image">
+                <img
+                    src="{{ url_for('static', filename='images/chat-illustration.svg') }}"
+                    alt="People communicating through an online chat"
+                >
+            </div>
+        </section>
+
+        <!-- Chat section -->
+        <section id="chat-section" class="chat-section hidden">
+            <div class="chat-card">
+                <header class="chat-header">
+                    <div>
+                        <p class="room-label">Public room</p>
+                        <h2>Community Chat</h2>
+                    </div>
+
+                    <div class="user-details">
+                        <span>Chatting as</span>
+                        <strong id="current-username"></strong>
+                    </div>
+                </header>
+
+                <div id="messages" class="messages">
+                    <div class="welcome-message">
+                        Welcome! Send your first message.
+                    </div>
+                </div>
+
+                <form id="message-form" class="message-form">
+                    <input
+                        id="message-input"
+                        type="text"
+                        maxlength="500"
+                        placeholder="Type your message..."
+                        autocomplete="off"
+                    >
+
+                    <button type="submit">Send</button>
+                </form>
+
+                <button id="leave-button" class="leave-button" type="button">
+                    Leave chat
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+</body>
+</html>
