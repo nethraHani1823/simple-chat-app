@@ -68,4 +68,48 @@ jobs:
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Buildx
-        uses:
+        uses: docker/setup-buildx-action@v3
+
+      - name: Lowercase image name
+        run: echo "IMAGE_NAME=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Build image
+        run: docker build -t chatflow:test .
+
+      # ---- post-build, pre-push ----
+      - name: Trivy — image scan
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: chatflow:test
+          format: table
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '0'          # flip to '1' once the image is clean
+
+      - name: Smoke test
+        run: |
+          docker run -d -p 5000:5000 --name test chatflow:test
+          sleep 5
+          docker ps | grep test
+          curl -f http://localhost:5000 || exit 1
+          docker logs test
+          docker stop test
+
+      - name: Log in to registry
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push image
+        if: github.event_name == 'push'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
