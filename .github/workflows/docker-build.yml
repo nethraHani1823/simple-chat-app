@@ -52,7 +52,7 @@ jobs:
           scan-type: config
           scan-ref: .
           severity: CRITICAL,HIGH
-          exit-code: '0'          # report only for now
+          exit-code: '1'
 
       - name: Trivy — dependency vulnerabilities
         uses: aquasecurity/trivy-action@0.35.0
@@ -61,7 +61,7 @@ jobs:
           scan-ref: .
           severity: CRITICAL,HIGH
           ignore-unfixed: true
-          exit-code: '0'          # report only for now
+          exit-code: '1'
 
       # ---- build ----
       - name: Set up QEMU
@@ -84,7 +84,7 @@ jobs:
           format: table
           severity: CRITICAL,HIGH
           ignore-unfixed: true
-          exit-code: '0'          # flip to '1' once the image is clean
+          exit-code: '1'
 
       - name: Smoke test
         run: |
