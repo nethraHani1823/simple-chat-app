@@ -111,6 +111,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      pull-requests: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -123,6 +124,7 @@ jobs:
           scan-ref: .
           severity: CRITICAL,HIGH
           exit-code: '0'
+          output: trivy-config.txt
 
       - name: Trivy — dependency vulnerabilities
         uses: aquasecurity/trivy-action@0.35.0
@@ -132,6 +134,7 @@ jobs:
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: '0'
+          output: trivy-fs.txt
 
       # ---- build ----
       - name: Set up QEMU
@@ -155,6 +158,7 @@ jobs:
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: '0'
+          output: trivy-image.txt
 
       - name: Smoke test
         run: |
@@ -164,6 +168,54 @@ jobs:
           curl -f http://localhost:5000 || exit 1
           docker logs test
           docker stop test
+
+      - name: Publish build summary
+        id: build-summary
+        if: always()
+        run: |
+          {
+            echo "## Build report — \`${{ job.status }}\`"
+            echo
+            echo "### Trivy — Dockerfile misconfiguration"
+            echo '```'
+            cat trivy-config.txt 2>/dev/null || echo "(no report generated)"
+            echo '```'
+            echo "### Trivy — dependency vulnerabilities"
+            echo '```'
+            cat trivy-fs.txt 2>/dev/null || echo "(no report generated)"
+            echo '```'
+            echo "### Trivy — image scan"
+            echo '```'
+            cat trivy-image.txt 2>/dev/null || echo "(no report generated)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          {
+            echo "body<<BUILD_EOF"
+            echo "## Build report — \`${{ job.status }}\`"
+            echo
+            echo "### Trivy — Dockerfile misconfiguration"
+            echo '```'
+            cat trivy-config.txt 2>/dev/null || echo "(no report generated)"
+            echo '```'
+            echo "### Trivy — dependency vulnerabilities"
+            echo '```'
+            cat trivy-fs.txt 2>/dev/null || echo "(no report generated)"
+            echo '```'
+            echo "### Trivy — image scan"
+            echo '```'
+            cat trivy-image.txt 2>/dev/null || echo "(no report generated)"
+            echo '```'
+            echo "BUILD_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create comment
+        if: always() && github.event_name == 'pull_request'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.number }}
+          body: ${{ steps.build-summary.outputs.body }}
+          reactions: rocket
 
       - name: Log in to registry
         if: github.event_name == 'push'
