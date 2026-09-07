@@ -33,7 +33,55 @@ jobs:
   #           git /repo --redact --verbose --no-banner
 
   # ---------------------------------------------------------------
-  # Job 2: build, scan, push
+  # Job 2: unit tests + coverage report
+  # ---------------------------------------------------------------
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Run tests with coverage
+        run: |
+          pytest tests/ \
+            --cov=app \
+            --cov-report=term-missing \
+            --cov-report=xml \
+            --cov-report=html \
+            --cov-fail-under=70
+
+      - name: Publish coverage summary
+        if: always()
+        run: |
+          {
+            echo "## Coverage report"
+            echo '```'
+            python -m coverage report
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            coverage.xml
+            htmlcov/
+          retention-days: 14
+
+  # ---------------------------------------------------------------
+  # Job 3: build, scan, push
   # ---------------------------------------------------------------
   build-and-push:
     runs-on: ubuntu-latest
