@@ -27,7 +27,6 @@ jobs:
   #           -e GIT_CONFIG_VALUE_0=/repo \
   #           zricethezav/gitleaks:latest \
   #           git /repo --redact --verbose --no-banner
-
   # ---------------------------------------------------------------
   # Job 2: build, scan, push
   # ---------------------------------------------------------------
@@ -82,7 +81,7 @@ jobs:
           curl -f http://localhost:5000 || exit 1
           docker logs test
           docker stop test
-           - name: Log in to registry
+      - name: Log in to registry
         if: github.event_name == 'push' || github.event_name == 'pull_request'
         uses: docker/login-action@v3
         with:
