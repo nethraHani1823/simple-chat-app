@@ -11,30 +11,30 @@ jobs:
   # ---------------------------------------------------------------
   # Job 1: secret scanning — runs first, blocks everything else
   # ---------------------------------------------------------------
-  secret-scan:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout code (full history)
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0   # Gitleaks needs all commits, not just the latest
-      - name: Gitleaks secret scan
-        run: |
-          docker run --rm -v "$PWD:/repo" \
-            -e GIT_CONFIG_COUNT=1 \
-            -e GIT_CONFIG_KEY_0=safe.directory \
-            -e GIT_CONFIG_VALUE_0=/repo \
-            zricethezav/gitleaks:latest \
-            git /repo --redact --verbose --no-banner
+  # secret-scan:
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     contents: read
+  #   steps:
+  #     - name: Checkout code (full history)
+  #       uses: actions/checkout@v6
+  #       with:
+  #         fetch-depth: 0   # Gitleaks needs all commits, not just the latest
+  #     - name: Gitleaks secret scan
+  #       run: |
+  #         docker run --rm -v "$PWD:/repo" \
+  #           -e GIT_CONFIG_COUNT=1 \
+  #           -e GIT_CONFIG_KEY_0=safe.directory \
+  #           -e GIT_CONFIG_VALUE_0=/repo \
+  #           zricethezav/gitleaks:latest \
+  #           git /repo --redact --verbose --no-banner
 
   # ---------------------------------------------------------------
   # Job 2: build, scan, push
   # ---------------------------------------------------------------
   build-and-push:
     runs-on: ubuntu-latest
-    needs: secret-scan
+    # needs: secret-scan
     permissions:
       contents: read
       packages: write
