@@ -1,51 +1,46 @@
 name: Docker Pipeline
-
 on:
   workflow_dispatch:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-
 env:
   REGISTRY: ghcr.io
-
 jobs:
-        # ---------------------------------------------------------------
-        # Job 1: secret scanning — runs first, blocks everything else
-        # ---------------------------------------------------------------
-        # secret-scan:
-        #   runs-on: ubuntu-latest
-        #   permissions:
-        #     contents: read
-        #   steps:
-        #     - name: Checkout code (full history)
-        #       uses: actions/checkout@v6
-        #       with:
-        #         fetch-depth: 0   # Gitleaks needs all commits, not just the latest
+  # ---------------------------------------------------------------
+  # Job 1: secret scanning — runs first, blocks everything else
+  # ---------------------------------------------------------------
+  secret-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code (full history)
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0   # Gitleaks needs all commits, not just the latest
+      - name: Gitleaks secret scan
+        run: |
+          docker run --rm -v "$PWD:/repo" \
+            -e GIT_CONFIG_COUNT=1 \
+            -e GIT_CONFIG_KEY_0=safe.directory \
+            -e GIT_CONFIG_VALUE_0=/repo \
+            zricethezav/gitleaks:latest \
+            git /repo --redact --verbose --no-banner
 
-        #     - name: Gitleaks secret scan
-        #       run: |
-        #         docker run --rm -v "$PWD:/repo" \
-        #           -e GIT_CONFIG_COUNT=1 \
-        #           -e GIT_CONFIG_KEY_0=safe.directory \
-        #           -e GIT_CONFIG_VALUE_0=/repo \
-        #           zricethezav/gitleaks:latest \
-        #           git /repo --redact --verbose --no-banner
-
-        # ---------------------------------------------------------------
-        # Job 2: build, scan, push
-        # ---------------------------------------------------------------
+  # ---------------------------------------------------------------
+  # Job 2: build, scan, push
+  # ---------------------------------------------------------------
   build-and-push:
     runs-on: ubuntu-latest
-    # needs: secret-scan
+    needs: secret-scan
     permissions:
       contents: read
       packages: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
-
       # ---- pre-build checks: source only, fail fast ----
       - name: Trivy — Dockerfile misconfiguration
         uses: aquasecurity/trivy-action@0.35.0
@@ -54,7 +49,6 @@ jobs:
           scan-ref: .
           severity: CRITICAL,HIGH
           exit-code: '0'
-
       - name: Trivy — dependency vulnerabilities
         uses: aquasecurity/trivy-action@0.35.0
         with:
@@ -63,20 +57,15 @@ jobs:
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: '0'
-
       # ---- build ----
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
-
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
-
       - name: Lowercase image name
         run: echo "IMAGE_NAME=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-
       - name: Build image
         run: docker build -t chatflow:test .
-
       # ---- post-build, pre-push ----
       - name: Trivy — image scan
         uses: aquasecurity/trivy-action@0.35.0
@@ -86,7 +75,6 @@ jobs:
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: '0'
-
       - name: Smoke test
         run: |
           docker run -d -p 5000:5000 --name test chatflow:test
@@ -95,7 +83,6 @@ jobs:
           curl -f http://localhost:5000 || exit 1
           docker logs test
           docker stop test
-
       - name: Log in to registry
         if: github.event_name == 'push'
         uses: docker/login-action@v3
@@ -103,7 +90,6 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Push image
         if: github.event_name == 'push'
         uses: docker/build-push-action@v5
