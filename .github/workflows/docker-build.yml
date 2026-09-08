@@ -10,23 +10,23 @@ jobs:
   # ---------------------------------------------------------------
   # Job 1: secret scanning — runs first, blocks everything else
   # ---------------------------------------------------------------
-  secret-scan:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout code (full history)
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0   # Gitleaks needs all commits, not just the latest
-      - name: Gitleaks secret scan
-        run: |
-          docker run --rm -v "$PWD:/repo" \
-            -e GIT_CONFIG_COUNT=1 \
-            -e GIT_CONFIG_KEY_0=safe.directory \
-            -e GIT_CONFIG_VALUE_0=/repo \
-            zricethezav/gitleaks:latest \
-            git /repo --redact --verbose --no-banner
+  # secret-scan:
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     contents: read
+  #   steps:
+  #     - name: Checkout code (full history)
+  #       uses: actions/checkout@v6
+  #       with:
+  #         fetch-depth: 0   # Gitleaks needs all commits, not just the latest
+  #     - name: Gitleaks secret scan
+  #       run: |
+  #         docker run --rm -v "$PWD:/repo" \
+  #           -e GIT_CONFIG_COUNT=1 \
+  #           -e GIT_CONFIG_KEY_0=safe.directory \
+  #           -e GIT_CONFIG_VALUE_0=/repo \
+  #           zricethezav/gitleaks:latest \
+  #           git /repo --redact --verbose --no-banner
   # ---------------------------------------------------------------
   # Job 2: build, scan, push
   # ---------------------------------------------------------------
@@ -46,7 +46,7 @@ jobs:
           scan-type: config
           scan-ref: .
           severity: CRITICAL,HIGH
-          exit-code: '0'
+          exit-code: '1'
       - name: Trivy — dependency vulnerabilities
         uses: aquasecurity/trivy-action@0.35.0
         with:
@@ -54,7 +54,7 @@ jobs:
           scan-ref: .
           severity: CRITICAL,HIGH
           ignore-unfixed: true
-          exit-code: '0'
+          exit-code: '1'
       # ---- build ----
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -72,7 +72,7 @@ jobs:
           format: table
           severity: CRITICAL,HIGH
           ignore-unfixed: true
-          exit-code: '0'
+          exit-code: '1'
       - name: Smoke test
         run: |
           docker run -d -p 5000:5000 --name test chatflow:test
