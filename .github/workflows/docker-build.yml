@@ -82,15 +82,15 @@ jobs:
           curl -f http://localhost:5000 || exit 1
           docker logs test
           docker stop test
-      - name: Log in to registry
-        if: github.event_name == 'push'
+           - name: Log in to registry
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Push image
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
         uses: docker/build-push-action@v5
         with:
           context: .
